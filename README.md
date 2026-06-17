@@ -182,3 +182,7 @@ Later phases:
 - Better route protection on the frontend
 - Production-ready auth improvements
 ```
+Some screenshots from Project
+<img width="702" height="744" alt="Screenshot 2026-06-17 at 10 51 36 PM" src="https://github.com/user-attachments/assets/cdbbd9ac-e70d-4f31-ac7e-4ad1be7531f4" />
+<img width="448" height="308" alt="Screenshot 2026-06-17 at 10 51 58 PM" src="https://github.com/user-attachments/assets/3065d3c7-8133-4dd9-bd11-02509b9637b6" />
+<img width="1013" height="844" alt="Screenshot 2026-06-17 at 10 52 40 PM" src="https://github.com/user-attachments/assets/0893298c-8200-4855-9061-e5c23a73600c" />
