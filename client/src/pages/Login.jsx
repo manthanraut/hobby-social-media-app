@@ -32,41 +32,66 @@ const Login = () => {
   };
 
   return (
-    <main>
-      <h1>Login</h1>
+    <main className="min-h-screen bg-base-200 flex items-center justify-center px-4">
+      <section className="card w-full max-w-md bg-base-100 shadow-xl">
+        <div className="card-body">
+          <div className="mb-2">
+            <h1 className="card-title text-2xl">Login</h1>
+            <p className="text-sm text-base-content/70">
+              Welcome back to HobbyHub
+            </p>
+          </div>
 
-      <form onSubmit={handleLogin}>
-        <div>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Enter email"
-          />
+          {error && (
+            <div className="alert alert-error text-sm">
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <label className="form-control w-full">
+              <div className="label">
+                <span className="label-text">Email</span>
+              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                className="input input-bordered w-full"
+              />
+            </label>
+
+            <label className="form-control w-full">
+              <div className="label">
+                <span className="label-text">Password</span>
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Enter your password"
+                className="input input-bordered w-full"
+              />
+            </label>
+
+            <button
+              type="submit"
+              className="btn btn-primary w-full"
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm">
+            Don&apos;t have an account?{" "}
+            <Link to="/signup" className="link link-primary">
+              Signup
+            </Link>
+          </p>
         </div>
-
-        <div>
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Enter password"
-          />
-        </div>
-
-        {error && <p>{error}</p>}
-
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
-      <p>
-        Don&apos;t have an account? <Link to="/signup">Signup</Link>
-      </p>
+      </section>
     </main>
   );
 };

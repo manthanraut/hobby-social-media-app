@@ -7,8 +7,13 @@ function Profile() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const [profileError, setProfileError] = useState("");
+  const [editError, setEditError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+
   const [editData, setEditData] = useState({
     firstName: "",
     lastName: "",
@@ -16,28 +21,34 @@ function Profile() {
     hobbies: "",
     photoUrl: "",
   });
-const [oldPassword, setOldPassword] = useState("");
-const [newPassword, setNewPassword] = useState("");
-const [passwordMessage, setPasswordMessage] = useState("");
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+  });
+
+  const syncEditForm = (profile) => {
+    setEditData({
+      firstName: profile.firstName || "",
+      lastName: profile.lastName || "",
+      bio: profile.bio || "",
+      hobbies: profile.hobbies?.join(", ") || "",
+      photoUrl: profile.photoUrl || "",
+    });
+  };
 
   const fetchProfile = async () => {
     try {
-      setError("");
+      setProfileError("");
       setLoading(true);
 
       const response = await api.get("/profile");
       const profile = response.data.data;
-      setUser(profile);
 
-      setEditData({
-        firstName: profile.firstName || "",
-        lastName: profile.lastName || "",
-        bio: profile.bio || "",
-        hobbies: profile.hobbies?.join(", ") || "",
-        photoUrl: profile.photoUrl || "",
-      });
+      setUser(profile);
+      syncEditForm(profile);
     } catch (error) {
-      setError(error.response?.data?.error || "Failed to load profile");
+      setProfileError(error.response?.data?.error || "Failed to load profile");
       navigate("/login");
     } finally {
       setLoading(false);
@@ -53,11 +64,20 @@ const [passwordMessage, setPasswordMessage] = useState("");
     });
   };
 
+  const handlePasswordChange = (event) => {
+    const { name, value } = event.target;
+
+    setPasswordData({
+      ...passwordData,
+      [name]: value,
+    });
+  };
+
   const handleEditProfile = async (event) => {
     event.preventDefault();
 
     try {
-      setError("");
+      setEditError("");
 
       const hobbiesArray = editData.hobbies
         .split(",")
@@ -72,173 +92,255 @@ const [passwordMessage, setPasswordMessage] = useState("");
         photoUrl: editData.photoUrl,
       });
 
-      setUser(response.data.data);
-    } catch (error) {
-      setError(error.response?.data?.error || "Failed to update profile");
-    }
-  };
+      const updatedUser = response.data.data;
 
-  const handleLogout = async () => {
-    try {
-      await api.post("/auth/logout");
-      navigate("/login");
+      setUser(updatedUser);
+      syncEditForm(updatedUser);
     } catch (error) {
-      setError(error.response?.data?.error || "Logout failed");
+      setEditError(error.response?.data?.error || "Failed to update profile");
     }
   };
 
   const handleChangePassword = async (event) => {
-  event.preventDefault();
+    event.preventDefault();
 
-  try {
-    setError("");
+    try {
+      setPasswordError("");
+      setPasswordMessage("");
 
-    await api.patch("/profile/password", {
-      oldPassword,
-      newPassword,
-    });
+      await api.patch("/profile/password", {
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+      });
 
-    setOldPassword("");
-    setNewPassword("");
-    setPasswordMessage("Password updated successfully");
-  } catch (error) {
-    setError(error.response?.data?.error || "Failed to update password");
-  }
-};
+      setPasswordData({
+        oldPassword: "",
+        newPassword: "",
+      });
+
+      setPasswordMessage("Password updated successfully");
+    } catch (error) {
+      setPasswordMessage("");
+      setPasswordError(
+        error.response?.data?.error || "Failed to update password",
+      );
+    }
+  };
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
   if (loading) {
-    return <p>Loading profile...</p>;
+    return (
+      <div className="flex min-h-64 items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    );
   }
 
-  if (error) {
-    return <p>{error}</p>;
+  if (profileError) {
+    return (
+      <div className="alert alert-error">
+        <span>{profileError}</span>
+      </div>
+    );
   }
 
   return (
-    <main>
-      <h1>Profile</h1>
+    <div className="grid items-start gap-6 lg:grid-cols-[260px_1fr]">
+      <section className="card bg-base-100 shadow">
+        <div className="flex flex-col items-center gap-2 p-4 text-center">
+          <div className="avatar placeholder">
+            <div className="h-20 w-20 rounded-full bg-primary text-primary-content">
+              {user.photoUrl ? (
+                <img src={user.photoUrl} alt={user.firstName} />
+              ) : (
+                <span className="text-2xl">
+                  {user.firstName?.charAt(0)}
+                  {user.lastName?.charAt(0)}
+                </span>
+              )}
+            </div>
+          </div>
 
-      <section>
-        <p>
-          <strong>Name:</strong> {user.firstName} {user.lastName}
-        </p>
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold leading-tight">
+              {user.firstName} {user.lastName}
+            </h1>
+            <p className="break-all text-xs text-base-content/60">
+              {user.email}
+            </p>
+          </div>
 
-        <p>
-          <strong>Email:</strong> {user.email}
-        </p>
+          <p className="text-sm leading-relaxed text-base-content/80">
+            {user.bio || "No bio added yet."}
+          </p>
 
-        <p>
-          <strong>Bio:</strong> {user.bio || "No bio added yet"}
-        </p>
-
-        <p>
-          <strong>Hobbies:</strong>{" "}
-          {user.hobbies?.length
-            ? user.hobbies.join(", ")
-            : "No hobbies added yet"}
-        </p>
-
-        {user.photoUrl && (
-          <img src={user.photoUrl} alt={user.firstName} width="160" />
-        )}
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {user.hobbies?.length ? (
+              user.hobbies.map((hobby) => (
+                <span
+                  key={hobby}
+                  className="badge badge-sm badge-primary badge-outline"
+                >
+                  {hobby}
+                </span>
+              ))
+            ) : (
+              <span className="badge badge-sm badge-ghost">No hobbies yet</span>
+            )}
+          </div>
+        </div>
       </section>
-      <button type="button" onClick={handleLogout}>
-        Logout
-      </button>
 
-      <h2>Edit Profile</h2>
+      <div className="grid gap-6">
+        <section className="card bg-base-100 shadow">
+          <div className="card-body">
+            <h2 className="card-title">Edit Profile</h2>
 
-      <form onSubmit={handleEditProfile}>
-        <div>
-          <label htmlFor="firstName">First name</label>
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            value={editData.firstName}
-            onChange={handleEditChange}
-          />
-        </div>
+            {editError && (
+              <div className="alert alert-error text-sm">
+                <span>{editError}</span>
+              </div>
+            )}
 
-        <div>
-          <label htmlFor="lastName">Last name</label>
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            value={editData.lastName}
-            onChange={handleEditChange}
-          />
-        </div>
+            <form onSubmit={handleEditProfile} className="grid gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="form-control w-full">
+                  <div className="label">
+                    <span className="label-text">First name</span>
+                  </div>
+                  <input
+                    name="firstName"
+                    type="text"
+                    value={editData.firstName}
+                    onChange={handleEditChange}
+                    className="input input-bordered w-full"
+                  />
+                </label>
 
-        <div>
-          <label htmlFor="bio">Bio</label>
-          <textarea
-            id="bio"
-            name="bio"
-            value={editData.bio}
-            onChange={handleEditChange}
-          />
-        </div>
+                <label className="form-control w-full">
+                  <div className="label">
+                    <span className="label-text">Last name</span>
+                  </div>
+                  <input
+                    name="lastName"
+                    type="text"
+                    value={editData.lastName}
+                    onChange={handleEditChange}
+                    className="input input-bordered w-full"
+                  />
+                </label>
+              </div>
 
-        <div>
-          <label htmlFor="hobbies">Hobbies</label>
-          <input
-            id="hobbies"
-            name="hobbies"
-            type="text"
-            value={editData.hobbies}
-            onChange={handleEditChange}
-            placeholder="painting, football, cooking"
-          />
-        </div>
+              <label className="form-control w-full">
+                <div className="label">
+                  <span className="label-text">Bio</span>
+                </div>
+                <textarea
+                  name="bio"
+                  value={editData.bio}
+                  onChange={handleEditChange}
+                  className="textarea textarea-bordered min-h-24 w-full"
+                />
+              </label>
 
-        <div>
-          <label htmlFor="photoUrl">Photo URL</label>
-          <input
-            id="photoUrl"
-            name="photoUrl"
-            type="text"
-            value={editData.photoUrl}
-            onChange={handleEditChange}
-          />
-        </div>
+              <label className="form-control w-full">
+                <div className="label">
+                  <span className="label-text">Hobbies</span>
+                </div>
+                <input
+                  name="hobbies"
+                  type="text"
+                  value={editData.hobbies}
+                  onChange={handleEditChange}
+                  placeholder="painting, football, cooking"
+                  className="input input-bordered w-full"
+                />
+                <div className="label">
+                  <span className="label-text-alt">
+                    Separate hobbies with commas.
+                  </span>
+                </div>
+              </label>
 
-        <button type="submit">Save Profile</button>
-      </form>
+              <label className="form-control w-full">
+                <div className="label">
+                  <span className="label-text">Photo URL</span>
+                </div>
+                <input
+                  name="photoUrl"
+                  type="text"
+                  value={editData.photoUrl}
+                  onChange={handleEditChange}
+                  className="input input-bordered w-full"
+                />
+              </label>
 
-      <h2>Change Password</h2>
+              <button type="submit" className="btn btn-primary">
+                Save Profile
+              </button>
+            </form>
+          </div>
+        </section>
 
-<form onSubmit={handleChangePassword}>
-  <div>
-    <label htmlFor="oldPassword">Old password</label>
-    <input
-      id="oldPassword"
-      type="password"
-      value={oldPassword}
-      onChange={(event) => setOldPassword(event.target.value)}
-    />
-  </div>
+        <section className="card bg-base-100 shadow">
+          <div className="card-body">
+            <h2 className="card-title">Change Password</h2>
 
-  <div>
-    <label htmlFor="newPassword">New password</label>
-    <input
-      id="newPassword"
-      type="password"
-      value={newPassword}
-      onChange={(event) => setNewPassword(event.target.value)}
-    />
-  </div>
+            {passwordMessage && (
+              <div className="alert alert-success text-sm">
+                <span>{passwordMessage}</span>
+              </div>
+            )}
 
-  <button type="submit">Update Password</button>
-</form>
+            {passwordError && (
+              <div className="alert alert-error text-sm">
+                <span>{passwordError}</span>
+              </div>
+            )}
 
-{passwordMessage && <p>{passwordMessage}</p>}
-    </main>
+            <form onSubmit={handleChangePassword} className="grid gap-4">
+              <label className="form-control w-full">
+                <div className="label">
+                  <span className="label-text">Old password</span>
+                </div>
+                <input
+                  name="oldPassword"
+                  type="password"
+                  value={passwordData.oldPassword}
+                  onChange={handlePasswordChange}
+                  className="input input-bordered w-full"
+                />
+              </label>
+
+              <label className="form-control w-full">
+                <div className="label">
+                  <span className="label-text">New password</span>
+                </div>
+                <input
+                  name="newPassword"
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={handlePasswordChange}
+                  className="input input-bordered w-full"
+                />
+                <div className="label">
+                  <span className="label-text-alt">
+                    Use a strong password like NewPassword@123.
+                  </span>
+                </div>
+              </label>
+
+              <button type="submit" className="btn btn-secondary">
+                Update Password
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }
 
